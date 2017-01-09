@@ -1,0 +1,52 @@
+.data
+
+texto1: .asciiz "digite o valor de um inteiro para se calcular seu fatorial :"
+texto2: .asciiz "o valor é :"
+
+.text
+
+la $a0,texto1
+li $v0, 4
+syscall
+li $v0,5
+syscall
+move $a0,$v0
+
+addi $sp, $sp, -4
+sw $zero, 0($sp)
+
+empilhar:
+
+addi $sp, $sp, -4
+sw $a0, 0($sp)
+beq $a0, 0, prepara
+
+addi, $a0, $a0, -1
+
+j empilhar
+
+prepara:
+addi $a0,$a0,1
+li $t1, 1
+
+desempilhar:
+
+
+move $t0, $t1
+addi $sp, $sp, 4
+lw $a0, 0($sp)
+
+mul $t1, $t0, $a0
+
+beq $t1, 0, sai
+
+j desempilhar
+
+sai:
+
+move $a0,$t0
+li $v0, 1
+syscall
+li $v0, 10
+syscall
+
