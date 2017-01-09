@@ -1,0 +1,374 @@
+#======================
+# Álvaro Queiroz - Universidade de Brasília
+#======================
+
+
+.data
+
+endl: .asciiz	"\n"
+tab: .asciiz	"\t"
+menu: .asciiz " ESCOLHA A OPÇÃO DE ROTINA: 1 - Soma [ das matrizes 1 e 2] ; 2 - Multiplicação; 3 -  Transposta; 4 -  Exibir matriz [ 1, 2, 3]; "
+menu2: .asciiz "ESCOLHA A MATRIZ A SER IMPRESSA: 1 - matriz1; 2 - matriz 2; 3 - matriz 3; "
+msg: .asciiz " O PROGRAMA FINALIZOU A OPERAÇÃO E SERA ENCERRADO "
+
+dimensao_do_lado: .word 3 # deve ser alterado junto com o tamanho das matrizes 1, 2, 3
+
+matriz1: .word 1 2 3 4 5 6 7 8 9
+matriz2: .word 1 0 0 0 1 0 0 0 1 # matriz ID
+matriz3: .word 0 0 0 0 0 0 0 0 0 # inicializa matriz resultado com zeros
+
+.text
+
+#===========
+# A0 - I; A1 - J; A2 - VALOR A SER ESCRITO; A3 - END BASE DA MATRIZ; para as funções write_cel, read_cel;
+# endereços das matrizes salvos em s0, s1 e s2 - s3 contém o tamanho do lado da matriz quadrada
+#===========
+
+main:
+
+la $s0, matriz1 # endereços das matriz 1, 2 e 3 em s0, s1, s2 nos registradores de valores salvos
+la $s1, matriz2
+la $s2, matriz3
+
+la $t0, dimensao_do_lado
+lw $s3, 0($t0) # s3 recebe o tamanho do lado da matriz
+
+
+la $a0, menu # menu para interface com o usuario
+li $v0, 4
+syscall
+
+li $v0,5
+syscall
+
+beq $v0,1,soma # desvios de acordo com a opção do usuario
+beq $v0,2,multiplica
+beq $v0,3,transposta
+beq $v0,4,print
+
+
+li $v0, 10
+syscall
+
+#=====================================
+
+read_cel: # recebe as coordenadas lin (linha, em $a0) e col (coluna, em $a1)
+# e retorna o valor do elemento da matriz correspondente no registrador $v0
+
+move $t0, $a0
+move $t1, $a1
+
+mul $t0, $t0, $s3 # considerando matriz quadradra com lado definido em s3 
+
+add $t0, $t0, $t1 # t0 recebe o descomento do endereço base da matriz s3xi+j
+sll $t0, $t0, 2 # multiplica deslocamento por 4 para achar deslocamento na memoria
+
+add $t0, $t0, $a3 # a3 CONTEM O ENDEREÇO BASE DA MATRIZ
+
+lw $v0, 0($t0) # v0 recebe valor da matriz A[i,j]
+
+jr $ra
+
+#======================================
+
+write_cel: # (lin, col, val) : recebe as coordenadas lin, col e escreve no elemento correspondente
+# da matriz o valor val. Os parâmetros são passados através de $a0, $a1, $a2
+
+move $t0, $a0
+move $t1, $a1
+
+mul $t0, $t0, $s3 # considerando matriz quadradra com lado definido em s3
+
+add $t0, $t0, $t1 # t0 recebe o descomento do endereço base da matriz
+sll $t0, $t0, 2 # multiplica deslocamento por 4 para achar deslocamento na memoria
+
+add $t0, $t0, $a3 # a3 CONTEM O ENDEREÇO BASE DA MATRIZ
+
+sw $a2, 0($t0) # v0 recebe valor da matriz A[i,j]
+
+jr $ra
+
+#==========================================
+
+soma: # recebe os endereços do primento elemento da primeira matriz, do
+# primeiro elemento da segunda matriz e do primeiro elemento da matriz resultado, além da
+# largura da matriz, nos registradores $a0, $a1, $a2 $a3, respectivamente. Realiza a soma dos
+# elementos colocando o resultado na matriz mr
+
+li $s4, 0 # i = j = 0
+li $s5, 0
+
+soma_while_1:
+
+slt $t3, $s4, $s3
+beq $t3, 0, soma_fim
+
+soma_while_2:
+
+slt $t3, $s5, $s3
+beq $t3, 0, soma_fim_linha
+
+move $a0, $s4 # passando parametros para red_cell
+move $a1, $s5
+move $a3, $s0
+
+jal read_cel 
+
+move $t4, $v0 # valor recebido da leitura
+
+move $a3, $s1 # passando parametros para red_cell
+
+jal read_cel
+
+move $t5, $v0 # valor recebido da leitura
+
+add $t4, $t4, $t5 # resultado da soma A[i,j]+B[i,j]
+
+move $a2, $t4 # passando parametros para a funcao write_cel
+move $a3, $s2 # endereço da matriz destino
+
+jal write_cel
+
+addi $s5, $s5, 1 # j++
+
+j soma_while_2
+
+soma_fim_linha:
+
+addi $s4, $s4, 1 # i++
+li $s5, 0 # j = 0
+
+j soma_while_1
+
+soma_fim: # rotina que finaliza o loop
+
+move $a3, $s2
+
+j print_matriz
+
+#==========================
+
+transposta: # produz a transposta da matriz m1 colocando o resultado em mr.
+# A transposta é a matriz gerada pela permuta das linhas pelas colunas
+
+li $s4, 0 # i = j = 0
+li $s5, 0
+
+transposta_while_1:
+
+slt $t3, $s4, $s3
+beq $t3, 0, transposta_fim
+
+transposta_while_2:
+
+slt $t3, $s5, $s3
+beq $t3, 0, transposta_fim_linha
+
+move $a0, $s4 # passando parametros para red_cell
+move $a1, $s5
+move $a3, $s0
+
+jal read_cel 
+
+move $t5, $v0 # valor recebido da leitura
+
+move $a2, $t5 # passando parametros para a funcao write_cel
+move $a3, $s2 # endereço da matriz destino
+
+move $t5, $s4 #trocando i por j para produzir a transposta
+move $s4, $s5
+move $s5, $t5
+
+move $a0, $s4 # enviando i e j para para a função write_cel
+move $a1, $s5
+
+jal write_cel
+
+move $t5, $s5 # trocando de volta i por j para produzir a transposta
+move $s5, $s4
+move $s4, $t5
+
+addi $s5, $s5, 1 # j++
+
+j transposta_while_2
+
+transposta_fim_linha:
+
+addi $s4, $s4, 1 # i++
+li $s5, 0 # j = 0
+
+j transposta_while_1
+
+transposta_fim: # rotina que finaliza o loop
+
+move $a3, $s2
+
+j print_matriz
+
+#===========================
+
+print:
+
+la $a0, menu2
+li $v0, 4
+syscall
+li $v0,5
+syscall
+beq $v0,1,matriz_1
+beq $v0,2,matriz_2
+beq $v0,3,matriz_3
+
+matriz_1:
+
+move $a3, $s0
+j print_matriz
+
+matriz_2:
+
+move $a3, $s1
+j print_matriz
+
+matriz_3:
+
+move $a3, $s2
+j print_matriz
+
+print_matriz:
+
+li $s4, 0 # i = j = 0
+li $s5, 0
+
+print_while_1:
+
+slt $t3, $s4, $s3
+beq $t3, 0, print_fim
+
+print_while_2:
+
+slt $t3, $s5, $s3
+beq $t3, 0, print_fim_linha
+
+move $a0, $s4 # passando parametros para red_cell
+move $a1, $s5
+
+
+jal read_cel 
+
+move $a0, $v0 # print A[i,j]
+li $v0 1
+syscall
+
+li $v0, 4 # printf("\t")
+la $a0, tab
+syscall
+
+addi $s5, $s5, 1 # j++
+
+j print_while_2
+
+print_fim_linha:
+
+addi $s4, $s4, 1 # i++
+li $s5, 0 # j = 0
+
+li $v0, 4 # printf("\n")
+la $a0, endl
+syscall
+
+j print_while_1
+
+print_fim: # rotina que finaliza o loop
+
+la $a0, msg
+li $v0, 4
+syscall
+
+li $v0, 10
+syscall
+
+#=========================================
+
+multiplica: # os parâmetros são os mesmo da função soma, e a matriz
+# mr recebe o resultado da multiplicação de m1 por m2
+
+li $s4, 0 # i = j = k = 0
+li $s5, 0
+li $s6, 0
+
+multiplica_while_1: # primeiro loop
+
+slt $t3, $s4, $s3 # se i=s3 sai do loop e multiplicação
+beq $t3, 0, multiplica_fim
+
+multiplica_while_2: # segundo loop
+
+slt $t3, $s5, $s3 # se j=s3 sai do loop, termina uma linha da matriz
+beq $t3, 0, multiplica_fim_linha
+
+multiplica_while_3: # terceiro loop
+
+slt $t3, $s6, $s3 # se k=s3, sai do loop, termina um elemento da matriz
+beq $t3, 0, multiplica_fim_k
+
+move $a0, $s4 # passando parametros para read_cel
+move $a1, $s6
+move $a3, $s0
+
+jal read_cel
+
+move $t8, $v0 # movendo resultado da leitura para t8
+
+move $a3, $s1  # enviando paramentros para segunda leitura em read_cel
+move $a0, $s6
+move $a1, $s5
+
+jal read_cel
+
+move $t9, $v0 # colocando resultado da segunda leitura em t9
+
+
+mul $t8, $t8, $t9 # t8=t8*t9
+
+add $t7, $t7, $t8 #t7 = t7+t8
+
+addi $s6, $s6, 1 # k++
+
+j multiplica_while_3
+
+
+multiplica_fim_k:
+
+
+
+move $a0, $s4 # passando parametros para write_cel escrever resultado em t7 na matriz resultado
+move $a1, $s5
+move $a2, $t7
+move $a3, $s2
+
+jal write_cel
+
+addi $s5, $s5, 1 # j++
+li $s6, 0 # k=0 - reseta paraetros para contar novamente
+
+li $t7, 0 # t7=0 resetando o valor de t7 para o proximo loop
+
+
+j multiplica_while_2
+
+multiplica_fim_linha:
+
+addi $s4, $s4, 1 # i++
+li $s5, 0 # j = 0
+li $t7, 0 # resetando t7 para o proximo loop
+
+
+
+j multiplica_while_1
+
+multiplica_fim: # rotina que finaliza o loop
+
+move $a3, $s2
+
+j print_matriz
+
+#=======================================
