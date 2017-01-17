@@ -1,0 +1,41 @@
+.data
+
+n0: .word 10 n3
+n1: .word 33 n4
+n2: .word 54 0
+n3: .word 24 n1
+n4: .word 7 n2
+
+#implementar função recursiva tamanho para percorrer a lista encadeada e contar quantos membros
+
+.text
+
+la $a0, n0
+
+jal tamanho
+
+move $a0, $v0
+li $v0, 1
+syscall
+li $v0, 10
+syscall
+
+tamanho:
+
+lw $t0, 4($a0)
+beq $t0, 0, sai
+
+addi $t1, $t1, 1
+move $a0, $t0
+
+j tamanho
+
+sai:
+
+move $v0, $t1
+addi $v0, $v0, 1
+
+jr $ra
+
+
+
